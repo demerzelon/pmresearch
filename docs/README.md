@@ -41,3 +41,9 @@ Outputs:
 - `out/agg_by_month.csv`
 - `out/agg_by_quarter.csv`
 - `out/notes_gaps.md`
+## Open interest / liquidity fields
+- `polymarket_liquidity_current`: Polymarket Gamma `liquidity` (best public proxy for depth / OI-like).
+- `open_interest_current`: Kalshi open-interest-like field as available in the public market listing snapshots used here.
+- `open_interest_at_resolution`: **not available from the public snapshots used in this repo** (would require historical OI time series or per-market history). Left blank for now.
+- `asof_utc`: when the CSV was last regenerated.
+
