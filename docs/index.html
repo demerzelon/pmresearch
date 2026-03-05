@@ -5,21 +5,94 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>pmresearch — Public-company KPI prediction markets (Polymarket + Kalshi)</title>
   <style>
-    :root { --fg:#111; --muted:#555; --bg:#fff; --card:#f6f7f8; --link:#0969da; }
-    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color:var(--fg); background:var(--bg); margin:0; }
-    header { padding: 28px 20px; border-bottom: 1px solid #e5e7eb; }
-    main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+    :root {
+      --fg: #0f172a;
+      --muted: #475569;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --line: #e2e8f0;
+      --link: #0b65d9;
+      --accent: #0ea5a4;
+      --accent-2: #f97316;
+      --accent-3: #8b5cf6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      color: var(--fg);
+      background: radial-gradient(circle at top right, #eff6ff 0%, var(--bg) 35%), var(--bg);
+      margin: 0;
+    }
+    header {
+      padding: 30px 20px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(3px);
+    }
+    main { padding: 20px; max-width: 1150px; margin: 0 auto; }
     a { color: var(--link); text-decoration: none; }
     a:hover { text-decoration: underline; }
-    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
-    .card { background: var(--card); border: 1px solid #e5e7eb; border-radius: 10px; padding: 14px; }
-    pre { white-space: pre-wrap; word-break: break-word; background:#0b1020; color:#e6edf3; padding:12px; border-radius:10px; overflow:auto; }
-    table { border-collapse: collapse; width: 100%; font-size: 14px; }
-    th, td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; }
-    th { background: #fafafa; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 2px 18px rgba(15, 23, 42, 0.04);
+    }
+    .chart-wrap {
+      position: relative;
+      min-height: 290px;
+    }
+    .chart-wrap canvas { width: 100% !important; height: 290px !important; }
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 0 0 10px;
+    }
+    .btn {
+      border: 1px solid var(--line);
+      background: #f8fafc;
+      color: var(--fg);
+      border-radius: 999px;
+      padding: 6px 11px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .btn.active {
+      background: #e0f2fe;
+      border-color: #7dd3fc;
+      font-weight: 600;
+    }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f8fafc; }
     .muted { color: var(--muted); }
     .small { font-size: 13px; }
-    footer { padding: 24px 20px; border-top: 1px solid #e5e7eb; color: var(--muted); }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0b1020;
+      color: #e6edf3;
+      padding: 12px;
+      border-radius: 10px;
+      overflow: auto;
+      margin: 0;
+    }
+    footer {
+      padding: 24px 20px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      margin-top: 18px;
+    }
+    .section-title { margin: 0 0 10px 0; font-size: 16px; }
+    .subtle { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
   </style>
 </head>
 <body>
@@ -31,8 +104,8 @@
   <main>
     <section class="grid">
       <div class="card">
-        <h2 style="margin:0 0 6px 0; font-size:16px;">Data files</h2>
-        <ul class="small">
+        <h2 class="section-title">Data files</h2>
+        <ul class="small" style="margin:0; padding-left: 18px;">
           <li><a href="markets_polymarket.csv">markets_polymarket.csv</a></li>
           <li><a href="markets_kalshi.csv">markets_kalshi.csv</a></li>
           <li><a href="agg_by_month.csv">agg_by_month.csv</a></li>
@@ -40,16 +113,42 @@
           <li><a href="README.md">Methodology (README)</a></li>
           <li><a href="notes_gaps.md">Gaps / caveats</a></li>
         </ul>
-        <div class="muted small">Note: venue volume units differ (Kalshi=contracts; Polymarket=USD-notional-ish). Don’t compare them directly.</div>
+        <div class="subtle">Units differ by venue: Kalshi volume is contract-count-like, Polymarket is USD-notional-like.</div>
       </div>
       <div class="card">
-        <h2 style="margin:0 0 6px 0; font-size:16px;">Preview: volume by quarter</h2>
-        <div id="quarter-table" class="small muted">Loading…</div>
+        <h2 class="section-title">Visualization notes</h2>
+        <div class="small muted">Charts are rendered client-side from repo CSV files (no build step). CSV parsing uses PapaParse to safely handle quoted commas and edge cases.</div>
       </div>
     </section>
 
-    <section style="margin-top:18px;" class="card">
-      <h2 style="margin:0 0 10px 0; font-size:16px;">Preview: KPI markets (first 15 rows each)</h2>
+    <section style="margin-top:14px;" class="card">
+      <h2 class="section-title">Volume by quarter</h2>
+      <div class="toolbar" id="volume-mode">
+        <button class="btn active" data-mode="dual">Dual axis</button>
+        <button class="btn" data-mode="pm">Polymarket only</button>
+        <button class="btn" data-mode="kalshi">Kalshi only</button>
+      </div>
+      <div class="chart-wrap"><canvas id="volume-chart"></canvas></div>
+      <div class="subtle">Polymarket plotted on left axis, Kalshi on right axis to avoid unit-mixing.</div>
+    </section>
+
+    <section style="margin-top:14px;" class="card">
+      <h2 class="section-title">Market count by quarter</h2>
+      <div class="chart-wrap"><canvas id="count-chart"></canvas></div>
+    </section>
+
+    <section style="margin-top:14px;" class="card">
+      <h2 class="section-title">Markets by company (all venues)</h2>
+      <div class="chart-wrap"><canvas id="company-chart"></canvas></div>
+    </section>
+
+    <section style="margin-top:14px;" class="card">
+      <h2 class="section-title">Quarterly summary table</h2>
+      <div id="quarter-table" class="small muted">Loading…</div>
+    </section>
+
+    <section style="margin-top:14px;" class="card">
+      <h2 class="section-title">Preview: KPI markets (first 15 rows each)</h2>
       <div class="grid">
         <div>
           <h3 style="margin:0 0 6px 0; font-size:14px;">Polymarket</h3>
@@ -62,11 +161,11 @@
       </div>
     </section>
 
-    <section style="margin-top:18px;" class="card">
-      <h2 style="margin:0 0 10px 0; font-size:16px;">How to reproduce</h2>
+    <section style="margin-top:14px;" class="card">
+      <h2 class="section-title">How to reproduce</h2>
       <pre>python3 scripts/fetch_markets.py
 python3 scripts/build_outputs.py</pre>
-      <div class="muted small">(Fetch step depends on network access to the public APIs.)</div>
+      <div class="subtle">Fetch depends on network access to public APIs.</div>
     </section>
   </main>
 
@@ -74,47 +173,290 @@ python3 scripts/build_outputs.py</pre>
     Built from OpenClaw research output. Source lives in the GitHub repo root.
   </footer>
 
-<script>
-function parseCSV(text) {
-  const lines = text.trim().split(/\r?\n/);
-  const header = lines[0].split(',');
-  const rows = lines.slice(1).map(line => {
-    // Minimal CSV parser: handles no quoted commas (true for our generated outputs)
-    const cols = line.split(',');
-    const obj = {};
-    header.forEach((h,i)=>obj[h]=cols[i]);
-    return obj;
-  });
-  return { header, rows };
-}
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script>
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
 
-function renderTable(el, header, rows, limit=15) {
-  const r = rows.slice(0, limit);
-  let html = '<table><thead><tr>' + header.map(h=>`<th>${h}</th>`).join('') + '</tr></thead><tbody>';
-  html += r.map(row => '<tr>' + header.map(h => `<td>${(row[h] ?? '')}</td>`).join('') + '</tr>').join('');
-  html += '</tbody></table>';
-  el.innerHTML = html;
-  el.classList.remove('muted');
-}
+    function parseCSV(text) {
+      const parsed = Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: h => (h || '').trim()
+      });
+      if (parsed.errors && parsed.errors.length) {
+        throw new Error(parsed.errors[0].message);
+      }
+      const rows = parsed.data;
+      const header = parsed.meta.fields || [];
+      return { header, rows };
+    }
 
-async function load() {
-  const quarter = await (await fetch('agg_by_quarter.csv')).text();
-  const q = parseCSV(quarter);
-  renderTable(document.getElementById('quarter-table'), q.header, q.rows, 100);
+    function toNumber(value) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : 0;
+    }
 
-  const pm = await (await fetch('markets_polymarket.csv')).text();
-  const pmc = parseCSV(pm);
-  renderTable(document.getElementById('pm-table'), pmc.header, pmc.rows, 15);
+    function renderTable(el, header, rows, limit) {
+      const renderRows = rows.slice(0, limit);
+      let html = '<table><thead><tr>' + header.map(h => '<th>' + escapeHtml(h) + '</th>').join('') + '</tr></thead><tbody>';
+      html += renderRows.map(row => '<tr>' + header.map(h => '<td>' + escapeHtml(row[h]) + '</td>').join('') + '</tr>').join('');
+      html += '</tbody></table>';
+      el.innerHTML = html;
+      el.classList.remove('muted');
+    }
 
-  const k = await (await fetch('markets_kalshi.csv')).text();
-  const kc = parseCSV(k);
-  renderTable(document.getElementById('kalshi-table'), kc.header, kc.rows, 15);
-}
-load().catch(err => {
-  document.getElementById('quarter-table').textContent = 'Failed to load tables: ' + err;
-  document.getElementById('pm-table').textContent = 'Failed to load tables: ' + err;
-  document.getElementById('kalshi-table').textContent = 'Failed to load tables: ' + err;
-});
-</script>
+    function quarterSort(a, b) {
+      const [ay, aq] = a.split('-Q');
+      const [by, bq] = b.split('-Q');
+      return (Number(ay) - Number(by)) || (Number(aq) - Number(bq));
+    }
+
+    function buildQuarterSeries(rows) {
+      const data = new Map();
+      for (const row of rows) {
+        const quarter = row.quarter;
+        if (!data.has(quarter)) {
+          data.set(quarter, {
+            quarter,
+            pmVolume: 0,
+            kalshiVolume: 0,
+            combinedVolume: 0,
+            pmCount: 0,
+            kalshiCount: 0,
+            combinedCount: 0
+          });
+        }
+        const d = data.get(quarter);
+        const venue = row.venue;
+        const volume = toNumber(row.total_volume);
+        const count = toNumber(row.market_count);
+        if (venue === 'Polymarket') {
+          d.pmVolume = volume;
+          d.pmCount = count;
+        } else if (venue === 'Kalshi') {
+          d.kalshiVolume = volume;
+          d.kalshiCount = count;
+        } else if (venue === 'Combined') {
+          d.combinedVolume = volume;
+          d.combinedCount = count;
+        }
+      }
+      return Array.from(data.values()).sort((a, b) => quarterSort(a.quarter, b.quarter));
+    }
+
+    function buildCompanyCounts(pmRows, kalshiRows) {
+      const counts = new Map();
+      for (const row of pmRows.concat(kalshiRows)) {
+        const company = (row.company || 'Unknown').trim() || 'Unknown';
+        counts.set(company, (counts.get(company) || 0) + 1);
+      }
+      return Array.from(counts.entries())
+        .map(([company, count]) => ({ company, count }))
+        .sort((a, b) => b.count - a.count || a.company.localeCompare(b.company));
+    }
+
+    let volumeChart;
+
+    function makeVolumeChart(series) {
+      const ctx = document.getElementById('volume-chart');
+      const labels = series.map(d => d.quarter);
+      volumeChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Polymarket volume (USD-like)',
+              data: series.map(d => d.pmVolume),
+              borderColor: '#0ea5a4',
+              backgroundColor: 'rgba(14, 165, 164, 0.18)',
+              tension: 0.25,
+              pointRadius: 3,
+              yAxisID: 'yPm'
+            },
+            {
+              label: 'Kalshi volume (contracts-like)',
+              data: series.map(d => d.kalshiVolume),
+              borderColor: '#f97316',
+              backgroundColor: 'rgba(249, 115, 22, 0.18)',
+              tension: 0.25,
+              pointRadius: 3,
+              yAxisID: 'yKalshi'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: { mode: 'index', intersect: false }
+          },
+          scales: {
+            yPm: {
+              type: 'linear',
+              position: 'left',
+              title: { display: true, text: 'Polymarket volume' },
+              grid: { color: 'rgba(148, 163, 184, 0.2)' }
+            },
+            yKalshi: {
+              type: 'linear',
+              position: 'right',
+              title: { display: true, text: 'Kalshi volume' },
+              grid: { drawOnChartArea: false }
+            },
+            x: { grid: { color: 'rgba(148, 163, 184, 0.2)' } }
+          }
+        }
+      });
+
+      const buttons = document.querySelectorAll('#volume-mode .btn');
+      function setMode(mode) {
+        buttons.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
+        if (mode === 'dual') {
+          volumeChart.data.datasets[0].hidden = false;
+          volumeChart.data.datasets[1].hidden = false;
+          volumeChart.options.scales.yPm.display = true;
+          volumeChart.options.scales.yKalshi.display = true;
+        } else if (mode === 'pm') {
+          volumeChart.data.datasets[0].hidden = false;
+          volumeChart.data.datasets[1].hidden = true;
+          volumeChart.options.scales.yPm.display = true;
+          volumeChart.options.scales.yKalshi.display = false;
+        } else {
+          volumeChart.data.datasets[0].hidden = true;
+          volumeChart.data.datasets[1].hidden = false;
+          volumeChart.options.scales.yPm.display = false;
+          volumeChart.options.scales.yKalshi.display = true;
+        }
+        volumeChart.update();
+      }
+
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => setMode(btn.dataset.mode));
+      });
+    }
+
+    function makeCountChart(series) {
+      const ctx = document.getElementById('count-chart');
+      const labels = series.map(d => d.quarter);
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Combined',
+              data: series.map(d => d.combinedCount),
+              backgroundColor: 'rgba(139, 92, 246, 0.32)',
+              borderColor: '#8b5cf6',
+              borderWidth: 1
+            },
+            {
+              label: 'Polymarket',
+              data: series.map(d => d.pmCount),
+              backgroundColor: 'rgba(14, 165, 164, 0.45)',
+              borderColor: '#0ea5a4',
+              borderWidth: 1
+            },
+            {
+              label: 'Kalshi',
+              data: series.map(d => d.kalshiCount),
+              backgroundColor: 'rgba(249, 115, 22, 0.45)',
+              borderColor: '#f97316',
+              borderWidth: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Market count' },
+              ticks: { precision: 0 },
+              grid: { color: 'rgba(148, 163, 184, 0.2)' }
+            },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    function makeCompanyChart(companyData) {
+      const ctx = document.getElementById('company-chart');
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: companyData.map(d => d.company),
+          datasets: [{
+            label: 'Markets',
+            data: companyData.map(d => d.count),
+            backgroundColor: 'rgba(11, 101, 217, 0.5)',
+            borderColor: '#0b65d9',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0 },
+              title: { display: true, text: 'Market count' },
+              grid: { color: 'rgba(148, 163, 184, 0.2)' }
+            },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    async function loadCSV(path) {
+      const response = await fetch(path);
+      if (!response.ok) {
+        throw new Error('HTTP ' + response.status + ' for ' + path);
+      }
+      return parseCSV(await response.text());
+    }
+
+    async function load() {
+      const [quarter, pm, kalshi] = await Promise.all([
+        loadCSV('agg_by_quarter.csv'),
+        loadCSV('markets_polymarket.csv'),
+        loadCSV('markets_kalshi.csv')
+      ]);
+
+      renderTable(document.getElementById('quarter-table'), quarter.header, quarter.rows, 100);
+      renderTable(document.getElementById('pm-table'), pm.header, pm.rows, 15);
+      renderTable(document.getElementById('kalshi-table'), kalshi.header, kalshi.rows, 15);
+
+      const quarterSeries = buildQuarterSeries(quarter.rows);
+      const companyCounts = buildCompanyCounts(pm.rows, kalshi.rows);
+
+      makeVolumeChart(quarterSeries);
+      makeCountChart(quarterSeries);
+      makeCompanyChart(companyCounts);
+    }
+
+    load().catch(err => {
+      const msg = 'Failed to load data: ' + err.message;
+      document.getElementById('quarter-table').textContent = msg;
+      document.getElementById('pm-table').textContent = msg;
+      document.getElementById('kalshi-table').textContent = msg;
+    });
+  </script>
 </body>
 </html>
