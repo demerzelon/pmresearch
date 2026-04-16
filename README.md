@@ -12,9 +12,12 @@ Markets whose resolution is a **reported KPI** for a public company for a specif
 - `out/markets_polymarket.csv`, `out/markets_kalshi.csv`, `out/agg_by_month.csv`, `out/agg_by_quarter.csv`
 - `docs/polymarket_liq_100k_500k_all_latest.csv`
 - `docs/polymarket_liq_100k_500k_longtail_latest.csv`
+- `docs/markets_closing_24h_latest.csv` (live 24h close window, odds 20%–80%)
+- `docs/closing_24h.html` (landing page for the above)
 
 Snapshot-specific files:
-- `out/polymarket_liq_100k_500k_all_20260410_074706.csv`
-- `out/polymarket_liq_100k_500k_longtail_20260410_074706.csv`
+- `out/polymarket_liq_100k_500k_all_<timestamp>.csv`
+- `out/polymarket_liq_100k_500k_longtail_<timestamp>.csv`
+- `out/markets_closing_24h_<timestamp>.csv`
 
 See `out/README.md` for the detailed methodology and caveats.

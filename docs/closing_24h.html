@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>pmresearch — Markets closing in next 24h (Polymarket + Kalshi)</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; margin: 0; background: #f8fafc; color:#0f172a; }
+    header, main { max-width: 1100px; margin: 0 auto; padding: 18px; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px; margin-bottom:12px; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    th, td { border: 1px solid #e2e8f0; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background:#f1f5f9; }
+    a { color:#0b65d9; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    .muted { color:#475569; font-size: 13px; }
+    .pill { display:inline-block; border:1px solid #cbd5e1; border-radius:999px; padding:3px 8px; font-size:12px; margin-right:6px; background:#fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 style="margin:0 0 6px 0;">Markets closing in next 24h</h1>
+    <div class="muted">Polymarket + Kalshi, filtered to non-edge probabilities (20%–80%).</div>
+    <div style="margin-top:10px;">
+      <a class="pill" href="index.html">← Back to main landing page</a>
+      <a class="pill" href="markets_closing_24h_latest.csv">Download CSV</a>
+    </div>
+  </header>
+  <main>
+    <div class="card">
+      <div id="summary" class="muted">Loading…</div>
+    </div>
+    <div class="card">
+      <div id="table" class="muted">Loading…</div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script>
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function parseCSV(text) {
+      const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+      if (parsed.errors && parsed.errors.length) throw new Error(parsed.errors[0].message);
+      return parsed.data;
+    }
+
+    function renderTable(rows) {
+      const headers = [
+        'venue','title','close_time_utc','hours_to_close','prob_yes_pct','volume','liquidity_or_oi','url'
+      ];
+      let html = '<table><thead><tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>';
+      html += rows.map(r => {
+        return '<tr>' + headers.map(h => {
+          if (h === 'url') {
+            const u = r.url || '';
+            return '<td>' + (u ? '<a href="' + escapeHtml(u) + '" target="_blank" rel="noopener">link</a>' : '') + '</td>';
+          }
+          return '<td>' + escapeHtml(r[h]) + '</td>';
+        }).join('') + '</tr>';
+      }).join('');
+      html += '</tbody></table>';
+      return html;
+    }
+
+    async function main() {
+      const text = await fetch('markets_closing_24h_latest.csv', { cache: 'no-store' }).then(r => r.text());
+      const rows = parseCSV(text).sort((a, b) => Number(a.hours_to_close) - Number(b.hours_to_close));
+
+      const byVenue = rows.reduce((acc, r) => {
+        acc[r.venue] = (acc[r.venue] || 0) + 1;
+        return acc;
+      }, {});
+
+      document.getElementById('summary').innerHTML =
+        'Total markets: <b>' + rows.length + '</b> | ' +
+        Object.entries(byVenue).map(([k, v]) => k + ': ' + v).join(' | ');
+
+      document.getElementById('table').innerHTML = renderTable(rows);
+      document.getElementById('table').classList.remove('muted');
+    }
+
+    main().catch(err => {
+      document.getElementById('summary').textContent = 'Failed to load CSV: ' + err.message;
+      document.getElementById('table').textContent = '';
+    });
+  </script>
+</body>
+</html>
