@@ -25,6 +25,7 @@ PM_BASE = "https://gamma-api.polymarket.com/markets"
 KALSHI_BASE = "https://api.elections.kalshi.com/trade-api/v2/markets"
 
 HEADERS = {"User-Agent": "Mozilla/5.0"}
+MIN_LIQUIDITY_USD = 1000.0
 
 
 def get_json(url: str) -> Any:
@@ -56,6 +57,13 @@ def pct(v: Optional[float]) -> str:
     if v is None:
         return ""
     return f"{v*100:.2f}"
+
+
+def to_float(v: Any, default: float = 0.0) -> float:
+    try:
+        return float(v)
+    except Exception:
+        return default
 
 
 def fetch_polymarket(now: datetime, until: datetime) -> List[Dict[str, Any]]:
@@ -97,6 +105,10 @@ def fetch_polymarket(now: datetime, until: datetime) -> List[Dict[str, Any]]:
             if not (0.20 <= yes_p <= 0.80):
                 continue
 
+            liq = to_float(m.get("liquidity"), 0.0)
+            if liq < MIN_LIQUIDITY_USD:
+                continue
+
             rows.append(
                 {
                     "venue": "Polymarket",
@@ -108,7 +120,7 @@ def fetch_polymarket(now: datetime, until: datetime) -> List[Dict[str, Any]]:
                     "prob_yes_pct": pct(yes_p),
                     "band": "20-80",
                     "volume": m.get("volume", ""),
-                    "liquidity_or_oi": m.get("liquidity", ""),
+                    "liquidity_or_oi": f"{liq:.2f}",
                 }
             )
 
@@ -162,6 +174,10 @@ def fetch_kalshi(now: datetime, until: datetime) -> List[Dict[str, Any]]:
             if p is None or not (0.20 <= p <= 0.80):
                 continue
 
+            oi = to_float(m.get("open_interest_fp"), 0.0)
+            if oi < MIN_LIQUIDITY_USD:
+                continue
+
             ticker = m.get("ticker", "")
             event_ticker = m.get("event_ticker", "")
             url = f"https://kalshi.com/markets/{event_ticker}/{ticker}" if event_ticker and ticker else ""
@@ -177,7 +193,7 @@ def fetch_kalshi(now: datetime, until: datetime) -> List[Dict[str, Any]]:
                     "prob_yes_pct": pct(p),
                     "band": "20-80",
                     "volume": m.get("volume_24h_fp", ""),
-                    "liquidity_or_oi": m.get("open_interest_fp", ""),
+                    "liquidity_or_oi": f"{oi:.2f}",
                 }
             )
 
